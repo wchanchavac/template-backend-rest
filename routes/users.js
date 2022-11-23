@@ -3,9 +3,12 @@ const db = require('../database');
 var router = express.Router();
 var log = require('debug')('template-backend-rest:users')
 const boom = require('@hapi/boom')
-
+const jwt = require('jwt-simple')
 /* POST login. */
 router.post('/login', async (req, res, next) => {
+  const minute = 1000 * 60;
+  const hour = minute * 60;
+
   try {
     const { password, username: email } = req.body
     const user = await db.User.findOne({
@@ -21,7 +24,12 @@ router.post('/login', async (req, res, next) => {
     if (!user) {
       return next(boom.forbidden(`Invalid credentials`))
     }
-    res.json(user);
+    res.json({
+      ...user.toJSON(), jwt: jwt.encode({
+        sub: user.id,
+        exp: Math.trunc((new Date().getTime() + hour) / 1000)
+      }, process.env.JWT_KEY)
+    });
 
   } catch (error) {
     next(error)

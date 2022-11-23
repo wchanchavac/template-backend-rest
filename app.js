@@ -6,6 +6,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require('cors')
+const jwt = require('jwt-simple')
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -31,7 +32,27 @@ app.use(function setContext(req, res, next) {
 
 app.use('/', indexRouter);
 
-app.use('/api/v1', usersRouter);
+app.use('/api/v1', function name(req, res, next) {
+    console.log(req.path);
+    if (req.path === '/login') {
+        return next()
+    }
+
+    const authorization = req.headers?.authorization;
+    if (!authorization) {
+        return next(boom.unauthorized())
+    }
+
+    try {
+        const decoded = jwt.decode(authorization, process.env.JWT_KEY)
+        req.user = decoded
+        return next()
+    } catch (error) {
+        console.log(error);
+        return next(boom.unauthorized())
+    }
+
+}, usersRouter);
 
 
 app.use((err, req, res, next) => {
